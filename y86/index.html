@@ -93,10 +93,15 @@
         });
         $('#gen_mif').click(function() {
             $('#binary').val(assemble($('#editor').val()).instrs);
+            var width = $('#mif_width').val();
+            var depth = $('#mif_depth').val();
+            if (isNaN(parseInt(width)) || isNaN(parseInt(depth))) {
+                alert("please input the valid width and depth for MIF");
+                return;
+            }
             $('#mif').val(to_mif(
                 assemble($('#editor').val()).imem,
-                $('#mif_width').val(),
-                $('#mif_depth').val()));
+                width, depth));
         });
     });
     $('textarea').scroll(function(e) {
