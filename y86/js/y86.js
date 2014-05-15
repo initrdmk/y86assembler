@@ -76,17 +76,24 @@ var imm2bytes = function (imm) {
 };
 
 var immreg_seperator = function(immreg) {
-    var imm = instr[1].match(/\$((0x)|)\w+/gi);
+    var imm = immreg.match(/((0x)|)\w+/gi);
     if (imm.length < 1) return [];
+    if (imm[0] != '$') imm[0] = '$' + imm[0];
     imm = imm2bytes(imm[0]);
-    var reg = instr[1].match(/\(\%\w+\)/g);
+    var reg = immreg.match(/\(\%\w+\)/g);
     if (reg.length < 1) return [];
-    reg = reg[0].slice[1,-1];
+    reg = reg[0].slice(1,-1);
+    reg = reg2num[reg];
     return [imm, reg];
 }
 
+var lables = {}; // store labels
+var pc = 0;
+
 var assemble = function (code) {
     //
+    labels = {};
+    pc = 0;
 
     console.log(code);
     // split
@@ -99,10 +106,27 @@ var assemble = function (code) {
     });
     // 
     instrs = codes.map(function(instr) {
-        if (instr.length == 0) return "";
-        if (instr[0].length == 0) return "";
+        if (instr.length == 0)
+            return {addr:pc, inst: '', err:'INVALID_INST'};
+        if (instr[0].length == 0)
+            return {addr:pc, inst: '', err:'INVALID_INST'};
+        if ('.pos' === instr[0]) {
+            pc = parseInt(instr[1]);
+            return {addr:pc, inst:''};
+        }
+        if (instr[0].indexOf(':') != -1) {
+            var offset = instr[0].indexOf(':');
+            labels[instr[0].slice(0, offset)] = pc;
+            if (':' == instr[0][instr[0].length - 1]) {
+                instr = instr.slice(1);
+            } else {
+                instr[0] = instr[0].split(':')[1];
+            }
+        }
         icode = icode2byte[instr[0]];
-        if (undefined == icode) return "";
+        if (undefined == icode)
+            return {addr:pc, inst: '', err:'INVALID_INST'};
+
         var asm = icode;
         var regA = 'F';
         var regB = 'F';
@@ -110,14 +134,16 @@ var assemble = function (code) {
         if ('40' === icode) {
             regA = reg2num[instr[1]];
             immreg = immreg_seperator(instr[2])
-            if (immreg.length < 2) return '';
+            if (immreg.length < 2)
+                return {addr:pc, inst: '', err:'INVALID_IMMREG'};
             imm = immreg[0];
             regB = immreg[1];
         }
         if ('50' === icode) {
             regA = reg2num[instr[2]];
             immreg = immreg_seperator(instr[1])
-            if (immreg.length < 2) return '';
+            if (immreg.length < 2)
+                return {addr:pc, inst: '', err:'INVALID_IMMREG'};
             imm = immreg[0];
             regB = immreg[1];
         }
@@ -128,6 +154,13 @@ var assemble = function (code) {
             regB = reg2num[instr[2]];
         }
         if (['7', '8', '3'].indexOf(icode[0]) != -1) {
+            if (icode[0] == '7' || icode[0] == '8') {
+                if (undefined == labels[instr[1]]) {
+                } else {
+                    //
+                    instr[1] = "$" + labels[instr[1]];
+                }
+            }
             imm = imm2bytes(instr[1]);
         }
         if (need_reg.indexOf(icode) != -1) {
@@ -136,9 +169,34 @@ var assemble = function (code) {
         if (need_imm.indexOf(icode) != -1) {
             asm += ' ' + imm;
         }
-        return asm;
+        var ret = {addr:pc, inst:asm};
+        pc += asm.split(/\s+/).join('').length / 2;
+        return ret;
+        //return asm;
     });
-    return instrs.join('\n');
-    
+    var imem = [];
+    instrs.map(function(e) {
+        if (undefined != e.err) return;
+        var inst = e.inst.split(/\s+/).join('');
+        var addr = e.addr;
+        while (inst.length >= 2) {
+            imem[addr] = inst.slice(0,2);
+            addr += 1;
+            inst = inst.slice(2);
+        }
+    });
+    for (var i=0; i<imem.length; ++i) {
+        if (undefined == imem[i]) {
+            imem[i] = '00';
+        }
+    }
+    imem = imem.join('');
+    var ret = {
+        imem: imem,
+        instrs: instrs.map(function(e) {
+            if (undefined != e.err) return '';
+            return e.inst;
+        }).join('\n')
+    };
+    return ret;
 };
-

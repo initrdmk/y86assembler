@@ -33,6 +33,10 @@
         .right {
             float: right;
         }
+        textarea {
+            white-space:nowrap;
+            overflow:scroll;
+        }
     </style>
 </head>
 <body>
@@ -49,8 +53,12 @@
 </div>
 <div id='workspace'>
     <textarea id='editor'>
-        irmovl $0x12345678, %eax
-        addl %eax,%edi
+        #y86
+        .pos 1 # pos
+        Main: irmovl $0x12345678, %eax
+        Main2:addl %eax,%edi
+        jmp Main
+        call Main2
         halt
     </textarea>
     <!--
@@ -81,12 +89,18 @@
     */
     $(function() {
         $('#gen').click(function() {
-            $('#binary').val(assemble($('#editor').val()));
+            $('#binary').val(assemble($('#editor').val()).instrs);
         });
         $('#gen_mif').click(function() {
-            $('#binary').val(assemble($('#editor').val()));
-            $('#mif').val(to_mif($('#binary').val(), $('#mif_width').val(), $('#mif_depth').val()));
+            $('#binary').val(assemble($('#editor').val()).instrs);
+            $('#mif').val(to_mif(
+                assemble($('#editor').val()).imem,
+                $('#mif_width').val(),
+                $('#mif_depth').val()));
         });
+    });
+    $('textarea').scroll(function(e) {
+        $('textarea').scrollTop(e.target.scrollTop);
     });
 </script>
 </body>
