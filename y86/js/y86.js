@@ -2,8 +2,8 @@
 //      by mingkaidox
 
 
-var need_reg = ['20', '30', '40', '50', '60', 'A0', 'B0'];
-var need_imm = ['30', '40', '50', '70', '80'];
+var need_reg = ['2', '3', '4', '5', '6', 'A', 'B'];
+var need_imm = ['3', '4', '5', '7', '8'];
 
 var icode2byte = {
     'halt'  :   '00',
@@ -90,6 +90,77 @@ var immreg_seperator = function(immreg) {
 var lables = {}; // store labels
 var pc = 0;
 
+var assemble_inst = function(instr) {
+    if (instr.length == 0) return {addr:pc, inst: '', err:'INVALID_INST'};
+    if (instr[0].length == 0) return {addr:pc, inst: '', err:'INVALID_INST'};
+    if ('.pos' === instr[0]) {
+        pc = parseInt(instr[1]);
+        return {addr:pc, inst:''};
+    }
+    if (instr[0].indexOf(':') != -1) {
+        var offset = instr[0].indexOf(':');
+        labels[instr[0].slice(0, offset)] = pc;
+        if (':' == instr[0][instr[0].length - 1]) {
+            instr = instr.slice(1);
+        } else {
+            instr[0] = instr[0].split(':')[1];
+        }
+    }
+    icode = icode2byte[instr[0]];
+    if (undefined == icode)
+        return {addr:pc, inst: '', err:'INVALID_INST'};
+
+    var asm = icode;
+    var regA = 'F';
+    var regB = 'F';
+    var imm = '';
+    if ('40' === icode) {
+        regA = reg2num[instr[1]];
+        immreg = immreg_seperator(instr[2])
+        if (immreg.length < 2)
+            return {addr:pc, inst: '', err:'INVALID_IMMREG'};
+        imm = immreg[0];
+        regB = immreg[1];
+    }
+    if ('50' === icode) {
+        regA = reg2num[instr[2]];
+        immreg = immreg_seperator(instr[1])
+        if (immreg.length < 2)
+            return {addr:pc, inst: '', err:'INVALID_IMMREG'};
+        imm = immreg[0];
+        regB = immreg[1];
+    }
+    if (['2', '6', 'A', 'B'].indexOf(icode[0]) != -1) {
+        regA = reg2num[instr[1]];
+    }
+    if (['2', '3', '6'].indexOf(icode[0]) != -1) {
+        regB = reg2num[instr[2]];
+    }
+    if (['7', '8', '3'].indexOf(icode[0]) != -1) {
+        if (icode[0] == '7' || icode[0] == '8') {
+            if (undefined == labels[instr[1]]) {
+            } else {
+                //
+                instr[1] = "$" + labels[instr[1]];
+            }
+        }
+        imm = imm2bytes(instr[1]);
+    }
+    var pc_inc = 1;
+    if (need_reg.indexOf(icode[0]) != -1) {
+        asm += ' ' + regA + regB;
+        pc_inc++;
+    }
+    if (need_imm.indexOf(icode[0]) != -1) {
+        asm += ' ' + imm;
+        pc_inc+=4;
+    }
+    var ret = {addr:pc, inst:asm};
+    pc += pc_inc;
+    return ret;
+    //return asm;
+};
+
 var assemble = function (code) {
     //
     labels = {};
@@ -104,76 +175,11 @@ var assemble = function (code) {
         e = e.trim(' ');
         return e.split(/[\s,]+/);
     });
-    // 
-    instrs = codes.map(function(instr) {
-        if (instr.length == 0)
-            return {addr:pc, inst: '', err:'INVALID_INST'};
-        if (instr[0].length == 0)
-            return {addr:pc, inst: '', err:'INVALID_INST'};
-        if ('.pos' === instr[0]) {
-            pc = parseInt(instr[1]);
-            return {addr:pc, inst:''};
-        }
-        if (instr[0].indexOf(':') != -1) {
-            var offset = instr[0].indexOf(':');
-            labels[instr[0].slice(0, offset)] = pc;
-            if (':' == instr[0][instr[0].length - 1]) {
-                instr = instr.slice(1);
-            } else {
-                instr[0] = instr[0].split(':')[1];
-            }
-        }
-        icode = icode2byte[instr[0]];
-        if (undefined == icode)
-            return {addr:pc, inst: '', err:'INVALID_INST'};
-
-        var asm = icode;
-        var regA = 'F';
-        var regB = 'F';
-        var imm = '';
-        if ('40' === icode) {
-            regA = reg2num[instr[1]];
-            immreg = immreg_seperator(instr[2])
-            if (immreg.length < 2)
-                return {addr:pc, inst: '', err:'INVALID_IMMREG'};
-            imm = immreg[0];
-            regB = immreg[1];
-        }
-        if ('50' === icode) {
-            regA = reg2num[instr[2]];
-            immreg = immreg_seperator(instr[1])
-            if (immreg.length < 2)
-                return {addr:pc, inst: '', err:'INVALID_IMMREG'};
-            imm = immreg[0];
-            regB = immreg[1];
-        }
-        if (['2', '6', 'A', 'B'].indexOf(icode[0]) != -1) {
-            regA = reg2num[instr[1]];
-        }
-        if (['2', '3', '6'].indexOf(icode[0]) != -1) {
-            regB = reg2num[instr[2]];
-        }
-        if (['7', '8', '3'].indexOf(icode[0]) != -1) {
-            if (icode[0] == '7' || icode[0] == '8') {
-                if (undefined == labels[instr[1]]) {
-                } else {
-                    //
-                    instr[1] = "$" + labels[instr[1]];
-                }
-            }
-            imm = imm2bytes(instr[1]);
-        }
-        if (need_reg.indexOf(icode) != -1) {
-            asm += ' ' + regA + regB;
-        }
-        if (need_imm.indexOf(icode) != -1) {
-            asm += ' ' + imm;
-        }
-        var ret = {addr:pc, inst:asm};
-        pc += asm.split(/\s+/).join('').length / 2;
-        return ret;
-        //return asm;
-    });
+    // collect labels
+    codes.map(assemble_inst);
+    // process
+    pc = 0;
+    instrs = codes.map(assemble_inst);
     var imem = [];
     instrs.map(function(e) {
         if (undefined != e.err) return;
@@ -195,7 +201,7 @@ var assemble = function (code) {
         imem: imem,
         instrs: instrs.map(function(e) {
             if (undefined != e.err) return '';
-            return e.inst;
+            return '0x' + e.addr.toString(16) + ':\t' + e.inst;
         }).join('\n')
     };
     return ret;
