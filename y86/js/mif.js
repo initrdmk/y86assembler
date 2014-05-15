@@ -3,7 +3,6 @@
 
 var to_mif = function(codes, width, depth) {
     if (0 != width % 8) return '';
-    width /= 4;
     var out = "% MIF made by Y86 assembler\n";
     out += "DEPTH = " + depth + ';\n';
     out += "WIDTH = " + width + ';\n';
@@ -11,6 +10,7 @@ var to_mif = function(codes, width, depth) {
     out += 'DATA_RADIX = HEX;\n';
     out += 'CONTENT\n';
     out += 'BEGIN\n';
+    width /= 4;
     var line = 0;
     codes = codes.split(/\s+|\n/).join('');
     for (var i=1; i<width; ++i) {
