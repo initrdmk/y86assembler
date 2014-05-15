@@ -87,16 +87,33 @@
         assemble(editor.getValue());
     };
     */
+    var isPowOf2 = function(num) {
+        return (num & (num - 1)) == 0;
+    };
     $(function() {
         $('#gen').click(function() {
             $('#binary').val(assemble($('#editor').val()).instrs);
         });
         $('#gen_mif').click(function() {
             $('#binary').val(assemble($('#editor').val()).instrs);
-            var width = $('#mif_width').val();
-            var depth = $('#mif_depth').val();
-            if (isNaN(parseInt(width)) || isNaN(parseInt(depth))) {
+            var width = parseInt($('#mif_width').val());
+            var depth = parseInt($('#mif_depth').val());
+            if (isNaN(width) || isNaN(depth)) {
                 alert("please input the valid width and depth for MIF");
+                if (isNan((width))) {
+                    $('#mif_width').focus();
+                } else {
+                    $('#mif_height').focus();
+                }
+                return;
+            }
+            if (!isPowOf2(width) || !isPowOf2(depth)) {
+                alert("width and depth must be a pow of 2!");
+                if (!isPowOf2(width)) {
+                    $('#mif_width').focus();
+                } else {
+                    $('#mif_height').focus();
+                }
                 return;
             }
             $('#mif').val(to_mif(
