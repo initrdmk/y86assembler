@@ -52,7 +52,7 @@
     </span>
 </div>
 <div id='workspace'>
-    <textarea id='editor'>
+    <textarea id='editor' class='sync_scroll'>
         #y86
         .pos 1 # pos
         Main: irmovl $0x12345678, %eax
@@ -66,7 +66,7 @@
         # write your Y86 here
     </div>
     -->
-    <textarea id='binary'>
+    <textarea id='binary' class='sync_scroll'>
     </textarea>
 
     <textarea id='mif'>
@@ -121,8 +121,8 @@
                 width, depth));
         });
     });
-    $('textarea').scroll(function(e) {
-        $('textarea').scrollTop(e.target.scrollTop);
+    $('.sync_scroll').scroll(function(e) {
+        $('.sync_scroll').scrollTop(e.target.scrollTop);
     });
 </script>
 <script>
