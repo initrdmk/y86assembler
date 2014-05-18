@@ -58,6 +58,12 @@ var imm2bytes = function (imm) {
     if (imm[0] != '$') return null;
     imm = imm.substr(1);
 
+    var neg = false;
+    if (imm[0] == '-') {
+        neg = true;
+        imm = imm.substr(1);
+    }
+
     // check hex format
     var hex = (imm.indexOf('0x') == 0 || imm.indexOf('0X') == 0);
     if (hex) {
@@ -66,6 +72,9 @@ var imm2bytes = function (imm) {
     } else {
         // to hex
         imm = parseInt(imm).toString(16);
+    }
+    if (neg) {
+        imm = (0x100000000 - parseInt(imm, 16)).toString(16);
     }
 
     imm = ('00000000' + imm).slice(-8);
