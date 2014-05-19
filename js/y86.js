@@ -50,18 +50,20 @@ var reg2num = {
 var imm2bytes = function (imm) {
 
     // check args
-    if (undefined == imm) return null;
-    if (null == imm) return null;
+    if (undefined == imm || null == imm) return null;
     if (0 == imm.length) return null;
 
     // check imm $
     if (imm[0] != '$') return null;
     imm = imm.substr(1);
 
+    if (0 == imm.length) return null;
+
     var neg = false;
     if (imm[0] == '-') {
         neg = true;
         imm = imm.substr(1);
+        if (0 == imm.length) return null;
     }
 
     // check hex format
@@ -76,7 +78,9 @@ var imm2bytes = function (imm) {
     if (neg) {
         imm = (0x100000000 - parseInt(imm, 16)).toString(16);
     }
-
+    if (isNaN(parseInt(imm, 16)) || imm.length > 8) {
+        return null;
+    }
     imm = ('00000000' + imm).slice(-8);
     // to litte endian
     imm = imm[6] + imm[7] + ' ' + imm[4] + imm[5] + ' '
@@ -89,18 +93,22 @@ var immreg_seperator = function(immreg) {
     if (imm.length < 1) return [];
     if (imm[0] != '$') imm[0] = '$' + imm[0];
     imm = imm2bytes(imm[0]);
+    if (null == imm) return [];
     var reg = immreg.match(/\(\%\w+\)/g);
     if (reg.length < 1) return [];
     reg = reg[0].slice(1,-1);
     reg = reg2num[reg];
+    if (undefined == reg) return [];
     return [imm, reg];
 }
 
 var lables = {}; // store labels
 var pc = 0;
+var err = 0;
 
 var assemble_inst = function(instr) {
-    if (instr.length == 0) return {addr:pc, inst: '', err:'INVALID_INST'};
+    if (instr.length == 0) return {addr:pc, inst: ''};
+    if (instr.length == 1 && instr[0] == '') return {addr:pc, inst: ''};
     if (instr[0].length == 0) return {addr:pc, inst: '', err:'INVALID_INST'};
     if ('.pos' === instr[0]) {
         pc = parseInt(instr[1]);
@@ -156,15 +164,21 @@ var assemble_inst = function(instr) {
         imm = imm2bytes(instr[1]);
     }
     var pc_inc = 1;
+    var ret = null;
     if (need_reg.indexOf(icode[0]) != -1) {
+        if (undefined == regA || undefined == regB)
+            ret = {addr:pc, inst: '', err: 'INVALID_REG'};
         asm += ' ' + regA + regB;
         pc_inc++;
     }
     if (need_imm.indexOf(icode[0]) != -1) {
+        if (null == imm)
+            ret = {addr:pc, inst: '', err:'INVALID_IMM'};
         asm += ' ' + imm;
         pc_inc+=4;
     }
-    var ret = {addr:pc, inst:asm};
+    if (null == ret)
+        ret = {addr:pc, inst:asm};
     pc += pc_inc;
     return ret;
     //return asm;
@@ -172,6 +186,7 @@ var assemble_inst = function(instr) {
 
 var assemble = function (code) {
     //
+    err = 0;
     labels = {};
     pc = 0;
 
@@ -191,7 +206,10 @@ var assemble = function (code) {
     instrs = codes.map(assemble_inst);
     var imem = [];
     instrs.map(function(e) {
-        if (undefined != e.err) return;
+        if (undefined != e.err) {
+            err++;
+            return;
+        }
         var inst = e.inst.split(/\s+/).join('');
         var addr = e.addr;
         while (inst.length >= 2) {
@@ -207,9 +225,10 @@ var assemble = function (code) {
     }
     imem = imem.join('');
     var ret = {
+        err : err,
         imem: imem,
         instrs: instrs.map(function(e) {
-            if (undefined != e.err) return '';
+            if (undefined != e.err) return e.err;
             return '0x' + e.addr.toString(16) + ':\t' + e.inst;
         }).join('\n')
     };

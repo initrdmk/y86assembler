@@ -95,7 +95,13 @@
             $('#binary').val(assemble($('#editor').val()).instrs);
         });
         $('#gen_mif').click(function() {
-            $('#binary').val(assemble($('#editor').val()).instrs);
+            ret = assemble($('#editor').val());
+            $('#binary').val(ret.instrs);
+            $('#mif').val('');
+            if (ret.err > 0) {
+                alert("There's something wrong in the code, no MIF generated.");
+                return;
+            }
             var width = parseInt($('#mif_width').val());
             var depth = parseInt($('#mif_depth').val());
             if (isNaN(width) || isNaN(depth)) {
@@ -117,7 +123,7 @@
                 return;
             }
             $('#mif').val(to_mif(
-                assemble($('#editor').val()).imem,
+                ret.imem,
                 width, depth));
         });
     });
