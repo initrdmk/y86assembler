@@ -49,6 +49,12 @@ var reg2num = {
 // express imm in bytes (little-endian)
 var imm2bytes = function (imm) {
 
+    // check in map
+    if (undefined == labels[imm]) {
+    } else {
+        imm = "$" + labels[imm];
+    }
+
     // check args
     if (undefined == imm || null == imm) return null;
     if (0 == imm.length) return null;
@@ -131,9 +137,11 @@ var assemble_inst = function(instr) {
         labels[instr[0].slice(0, offset)] = pc;
         if (':' == instr[0][instr[0].length - 1]) {
             instr = instr.slice(1);
-            return {addr: pc, inst: ''};
         } else {
             instr[0] = instr[0].split(':')[1];
+        }
+        if (instr.length == 0) {
+            return {addr: pc, inst: ''};
         }
     }
     icode = icode2byte[instr[0]];
@@ -167,6 +175,7 @@ var assemble_inst = function(instr) {
         regB = reg2num[instr[2]];
     }
     if (['7', '8', '3'].indexOf(icode[0]) != -1) {
+        /*
         if (icode[0] == '7' || icode[0] == '8') {
             if (undefined == labels[instr[1]]) {
             } else {
@@ -174,6 +183,7 @@ var assemble_inst = function(instr) {
                 instr[1] = "$" + labels[instr[1]];
             }
         }
+        */
         imm = imm2bytes(instr[1]);
     }
     var pc_inc = 1;
