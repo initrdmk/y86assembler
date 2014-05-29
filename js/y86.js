@@ -119,6 +119,7 @@ var assemble_inst = function(instr) {
         labels[instr[0].slice(0, offset)] = pc;
         if (':' == instr[0][instr[0].length - 1]) {
             instr = instr.slice(1);
+            return {addr: pc, inst: ''};
         } else {
             instr[0] = instr[0].split(':')[1];
         }
