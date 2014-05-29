@@ -59,6 +59,7 @@ var imm2bytes = function (imm) {
 
     if (0 == imm.length) return null;
 
+    // check negative imm
     var neg = false;
     if (imm[0] == '-') {
         neg = true;
@@ -105,6 +106,7 @@ var immreg_seperator = function(immreg) {
 var lables = {}; // store labels
 var pc = 0;
 var err = 0;
+var align = 4;
 
 var assemble_inst = function(instr) {
     if (instr.length == 0) return {addr:pc, inst: ''};
@@ -113,6 +115,16 @@ var assemble_inst = function(instr) {
     if ('.pos' === instr[0]) {
         pc = parseInt(instr[1]);
         return {addr:pc, inst:''};
+    }
+    if ('.align' == instr[0]) {
+        align = parseInt(instr[1]);
+        return {addr:pc, inst:''};
+    }
+    if ('.long' == instr[0]) {
+        while (align && pc%align != 0) pc++;
+        var ret = {addr:pc, inst:imm2bytes('$' + instr[1])};
+        pc += 4;
+        return ret;
     }
     if (instr[0].indexOf(':') != -1) {
         var offset = instr[0].indexOf(':');
